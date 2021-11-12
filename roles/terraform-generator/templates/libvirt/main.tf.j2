@@ -1,0 +1,99 @@
+# Which server
+provider "libvirt" {
+  {% if item.hypervisor == 'localhost' %}
+  uri                   = "qemu:///system"
+  {% else %}
+  uri                   = "qemu+ssh://{{ item.hypervisor }}/system"
+  {% endif %}
+}
+
+# Create new storage pool for this VM
+resource "libvirt_pool" "{{ item.name }}" {
+  name                  = "{{ item.name }}"
+  type                  = "dir"
+  path                  = "{{ item.pool_path }}"
+}
+
+# Which cloud OS image to use
+resource "libvirt_volume" "{{ item.name }}-cloud-image" {
+  name                  = "{{ item.name }}-cloud-image.qcow2"
+  pool                  = libvirt_pool.{{ item.name }}.name
+  source                = var.{{ item.cloudimage.name }}_{{ item.cloudimage.version }}_{{ item.cloudimage.source }}
+  format                = "qcow2"
+}
+
+# VM disk spec and which pool
+resource "libvirt_volume" "{{ item.name }}-disk" {
+  name                  = "{{ item.name }}-disk.qcow2"
+  base_volume_id        = libvirt_volume.{{ item.name }}-cloud-image.id
+  pool                  = libvirt_pool.{{ item.name }}.name
+  size                  = {{ item.disk.size }}
+  format                = "qcow2"
+}
+
+# Cloud init definition
+data "template_file" "user_data" {
+  template              = file("${path.module}/cloud_init.cfg")
+}
+
+{% if item.network.dhcp == "no" %}
+# Network definition
+data "template_file" "network_config" {
+  template              = file("${path.module}/network_config.cfg")
+}
+{% endif %}
+
+# Mount cloud init as iso
+resource "libvirt_cloudinit_disk" "commoninit" {
+  name                  = "{{ item.name}}-commoninit.iso"
+  user_data             = data.template_file.user_data.rendered
+{% if item.network.dhcp == "no" %}
+  network_config        = data.template_file.network_config.rendered
+{% endif %}
+  pool                  = libvirt_pool.{{ item.name }}.name
+}
+
+# VM specification
+resource "libvirt_domain" "{{ item.name }}" {
+  name                  = "{{ item.hostname }}"
+  memory                = {{ item.spec.memory }}
+  vcpu                  = {{ item.spec.vcpu }}
+  autostart             = true
+  cloudinit             = libvirt_cloudinit_disk.commoninit.id
+
+  network_interface {
+    network_name        = "{{ item.network.name }}"
+{% if item.network.mac is defined %}
+    mac                 = "{{ item.network.mac }}"
+{% endif %}
+  }
+
+  console {
+    type                = "pty"
+    target_port         = "0"
+    target_type         = "serial"
+  }
+
+  console {
+    type                = "pty"
+    target_type         = "virtio"
+    target_port         = "1"
+  }
+
+  disk {
+    volume_id           = libvirt_volume.{{ item.name }}-disk.id
+  }
+
+  {% if item.filesystem is defined %}
+  filesystem {
+    accessmode          = "mapped"
+    source              = "{{ item.filesystem.source }}"
+    target              = "{{ item.filesystem.target }}"
+    readonly            = {{ item.filesystem.readonly }}
+  }
+  {% endif %}
+
+  video {
+    type                = "qxl"
+  }
+}

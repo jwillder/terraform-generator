@@ -1,0 +1,10 @@
+{% if item.network.dhcp == "no" %}
+version: 2
+ethernets:
+  ens4:
+    dhcp4: no
+    addresses: [{{ item.network.ip}}/24]
+    gateway4: {{ item.network.gateway }}
+    nameservers:
+      addresses: [{{ item.network.dns1 }}]
+{% endif %}

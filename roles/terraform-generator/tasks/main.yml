@@ -1,0 +1,11 @@
+---
+
+- name: Generate libvirt Terraform files
+  include: libvirt-provider.yml
+  loop: '{{ vm }}'
+  when: item.provider == 'libvirt'
+
+# - name: Generate proxmox Terraform files
+#   include: proxmox-provider.yml
+#   loop: '{{ vm }}'
+#   when: item.provider == 'proxmox'

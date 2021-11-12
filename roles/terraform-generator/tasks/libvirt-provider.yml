@@ -1,0 +1,31 @@
+---
+
+- name: Create directory to hold files
+  file:
+    path: 'terraform/libvirt/{{ item.hostname }}/'
+    state: directory
+
+- name: Create provider.tf
+  template:
+    src: templates/libvirt/provider.tf.j2
+    dest: 'terraform/libvirt/{{ item.name }}/provider.tf'
+
+- name: Create variables.tf
+  template:
+    src: templates/libvirt/variables.tf.j2
+    dest: 'terraform/libvirt/{{ item.name }}/variables.tf'
+
+- name: Create main.tf
+  template:
+    src: templates/libvirt/main.tf.j2
+    dest: 'terraform/libvirt/{{ item.name }}/main.tf'
+
+- name: Create cloud_init.cfg
+  template:
+    src: templates/libvirt/cloud_init.cfg.j2
+    dest: 'terraform/libvirt/{{ item.name }}/cloud_init.cfg'
+
+- name: Create network_config.cfg
+  template:
+    src: templates/libvirt/network_config.cfg.j2
+    dest: 'terraform/libvirt/{{ item.name }}/network_config.cfg'
