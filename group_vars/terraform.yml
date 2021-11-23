@@ -1,0 +1,77 @@
+---
+
+# Destination for Terraform files
+destination: '/home/{{ username }}/vm/terraform'
+
+# Terraform hypervisors
+# The IP or hostname of the hypervisors
+hypervisors:
+  lab1: '192.168.1.10'
+  lab2: '192.168.1.11'
+  localhost: 'localhost'
+
+# Pools
+pools:
+  default: '/var/lib/libvirt/images'
+  home: '/home/{{ username }}/vm/pools/'
+
+# Terraform VMs
+# List of VMs to create with Terraform
+vms:
+  - name: tf-ubuntu-focal-desktop
+    hypervisor: '{{ hypervisors.localhost }}'
+    provider: libvirt
+    pool_path: '{{ pools.home }}'
+    autostart: "false"
+    #hostname: jhvm1
+    baseimage:
+      os: ubuntu
+      version: focal
+      type: desktop
+      source: local
+      pool: base
+    disk:
+      size: 17179869184 # in bytes (GiB required * 1073741824)
+    cpu: "host-model"
+    vcpu: 2
+    memory: 3072
+    network:
+      name: default
+      mac: "52:54:00:e6:7a:14"
+      dhcp: "no"
+      ip: "192.168.122.20"
+      gateway: "192.168.122.1"
+      dns1: "192.168.122.1"
+    filesystem:
+      source: "/home/james/vm/shared"
+      target: "shared"
+      readonly: "false"
+
+  - name: tf-ubuntu-focal-server
+    hypervisor: '{{ hypervisors.localhost }}'
+    provider: libvirt
+    pool_path: '{{ pools.home }}'
+    autostart: "false"
+    #hostname: jhvm2
+    baseimage:
+      os: ubuntu
+      version: focal
+      type: server
+      source: local
+      pool: base
+    disk:
+      size: 17179869184 # in bytes (GiB required * 1073741824)
+    cpu: "host-model"
+    vcpu: 2
+    memory: 2048
+    network:
+      name: default
+      mac: "52:54:00:A2:7F:0A"
+      dhcp: "no"
+      ip: "192.168.122.10"
+      gateway: "192.168.122.1"
+      dns1: "192.168.122.1"
+    filesystem:
+      source: "/home/james/vm/shared"
+      target: "shared"
+      readonly: "false"

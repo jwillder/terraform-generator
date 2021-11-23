@@ -1,15 +1,23 @@
-# Debian Cloud Images
-variable "debian_bullseye_remote" {
+# Debian Server Cloud Image Remote
+variable "debian_bullseye_server_remote" {
   description = "Debian 11 Bullseye cloud image (remote)"
   default     = "https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-generic-amd64.qcow2"
 }
 
-# Ubuntu Cloud Images
-variable "ubuntu_focal_remote" {
+# Ubuntu Server Cloud Image Remote
+variable "ubuntu_focal_server_remote" {
   description = "Ubuntu 20.04 Focal cloud image (remote)"
   default     = "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
 }
-variable "ubuntu_focal_local" {
+
+# Ubuntu Server Cloud Image Local
+variable "ubuntu_focal_server_local" {
   description = "Ubuntu 20.04 Focal cloud image (local)"
-  default     = "/home/james/Downloads/CLOUD/focal-server-cloudimg-amd64.img"
+  default     = "focal-server-cloudimg-amd64.img"
+}
+
+# Ubuntu Desktop Base Images
+variable "ubuntu_focal_desktop_local" {
+  description = "Ubuntu 20.04 Focal desktop image (local)"
+  default     = "ubuntu-focal-desktop.qcow2"
 }

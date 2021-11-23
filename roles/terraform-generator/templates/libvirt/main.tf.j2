@@ -11,61 +11,80 @@ provider "libvirt" {
 resource "libvirt_pool" "{{ item.name }}" {
   name                  = "{{ item.name }}"
   type                  = "dir"
-  path                  = "{{ item.pool_path }}"
+  path                  = "{{ item.pool_path }}/{{ item.name }}"
 }
 
+{% if item.baseimage.source == 'remote' %}
 # Which cloud OS image to use
 resource "libvirt_volume" "{{ item.name }}-cloud-image" {
   name                  = "{{ item.name }}-cloud-image.qcow2"
   pool                  = libvirt_pool.{{ item.name }}.name
-  source                = var.{{ item.cloudimage.name }}_{{ item.cloudimage.version }}_{{ item.cloudimage.source }}
+  source                = var.{{ item.baseimage.os }}_{{ item.baseimage.version }}_{{ item.baseimage.type }}_{{ item.baseimage.source }}
   format                = "qcow2"
 }
+{% endif %}
 
 # VM disk spec and which pool
 resource "libvirt_volume" "{{ item.name }}-disk" {
   name                  = "{{ item.name }}-disk.qcow2"
-  base_volume_id        = libvirt_volume.{{ item.name }}-cloud-image.id
-  pool                  = libvirt_pool.{{ item.name }}.name
   size                  = {{ item.disk.size }}
-  format                = "qcow2"
-}
-
-# Cloud init definition
-data "template_file" "user_data" {
-  template              = file("${path.module}/cloud_init.cfg")
-}
-
-{% if item.network.dhcp == "no" %}
-# Network definition
-data "template_file" "network_config" {
-  template              = file("${path.module}/network_config.cfg")
-}
-{% endif %}
-
-# Mount cloud init as iso
-resource "libvirt_cloudinit_disk" "commoninit" {
-  name                  = "{{ item.name}}-commoninit.iso"
-  user_data             = data.template_file.user_data.rendered
-{% if item.network.dhcp == "no" %}
-  network_config        = data.template_file.network_config.rendered
-{% endif %}
   pool                  = libvirt_pool.{{ item.name }}.name
+  format                = "qcow2"
+  {% if item.baseimage.source == 'remote' %}
+  base_volume_id        = libvirt_volume.{{ item.name }}-cloud-image.id
+  {% endif %}
+  {% if item.baseimage.source == 'local' %}
+  base_volume_name      = var.{{ item.baseimage.os }}_{{ item.baseimage.version }}_{{ item.baseimage.type }}_{{ item.baseimage.source }}
+  base_volume_pool      = "{{ item.baseimage.pool }}"
+  {% endif %}
 }
+
+{% if item.baseimage.type == "server" %}
+  # Cloud init definition
+  data "template_file" "user_data" {
+    template              = file("${path.module}/cloud_init.cfg")
+  }
+
+  {% if item.network.dhcp == "no" %}
+  # Network definition
+  data "template_file" "network_config" {
+    template              = file("${path.module}/network_config.cfg")
+  }
+  {% endif %}
+
+  # Mount cloud init as iso
+  resource "libvirt_cloudinit_disk" "commoninit" {
+    name                  = "{{ item.name}}-commoninit.iso"
+    user_data             = data.template_file.user_data.rendered
+    {% if item.network.dhcp == "no" %}
+    network_config        = data.template_file.network_config.rendered
+    {% endif %}
+    pool                  = libvirt_pool.{{ item.name }}.name
+  }
+{% endif %}
 
 # VM specification
 resource "libvirt_domain" "{{ item.name }}" {
-  name                  = "{{ item.hostname }}"
-  memory                = {{ item.spec.memory }}
-  vcpu                  = {{ item.spec.vcpu }}
-  autostart             = true
+  name                  = "{{ item.name }}"
+  memory                = {{ item.memory }}
+  vcpu                  = {{ item.vcpu }}
+  autostart             = {{ item.autostart }}
+
+  {% if item.baseimage.type == "server" %}
   cloudinit             = libvirt_cloudinit_disk.commoninit.id
+  {% endif %}
+
+  {% if item.cpu is defined %}
+  cpu {
+    mode                = "{{ item.cpu }}"
+  }
+  {% endif %}
 
   network_interface {
     network_name        = "{{ item.network.name }}"
-{% if item.network.mac is defined %}
+    {% if item.network.mac is defined %}
     mac                 = "{{ item.network.mac }}"
-{% endif %}
+    {% endif %}
   }
 
   console {
