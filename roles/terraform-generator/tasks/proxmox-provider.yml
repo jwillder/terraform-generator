@@ -2,10 +2,10 @@
 
 - name: create directory to hold files
   file:
-    path: 'terraform/proxmox/{{ item.hostname }}/'
+    path: 'terraform/proxmox/{{ item.name }}/'
     state: directory
 
 - name: Create provider.tf
   template:
     src: templates/proxmox/provider.tf.j2
-    dest: 'terraform/proxmox/{{ item.hostname }}/provider.tf'
+    dest: 'terraform/proxmox/{{ item.name }}/provider.tf'
